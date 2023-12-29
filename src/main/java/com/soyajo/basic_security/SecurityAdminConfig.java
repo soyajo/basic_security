@@ -9,8 +9,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
@@ -19,26 +17,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.provisioning.UserDetailsManager;
-import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
-import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
-import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import java.io.IOException;
-
 
 import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
@@ -50,35 +39,10 @@ import static org.springframework.security.web.util.matcher.AntPathRequestMatche
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
-public class SecurityConfig {
-
+public class SecurityAdminConfig {
     @Bean
-    public UserDetailsManager users() {
-
-        UserDetails user = User.builder()
-                .username("user")
-                .password("{noop}1111")
-                .roles("USER")
-                .build();
-
-        UserDetails sys = User.builder()
-                .username("sys")
-                .password("{noop}1111")
-                .roles("SYS","USER")
-                .build();
-
-        UserDetails admin = User.builder()
-                .username("admin")
-                .password("{noop}1111")
-                .roles("ADMIN", "SYS", "USER")
-                .build();
-
-        return new InMemoryUserDetailsManager( user, sys, admin );
-    }
-
-    @Bean
-    @Order(1)
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    @Order(0)
+    public SecurityFilterChain adminFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(CsrfConfigurer::disable)
 //                .csrf((csrf) -> csrf
@@ -88,7 +52,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(
                         (authorizeRequest) -> authorizeRequest
                                 .requestMatchers(antMatcher("/login")).permitAll()
-                                .requestMatchers(antMatcher("/user")).hasRole("USER")
+                                .requestMatchers(antMatcher("/admin/pay")).hasRole("ADMIN")
+//                                .requestMatchers(antMatcher("/admin/**")).hasRole("SYS")
+                                .requestMatchers(antMatcher("/admin/**")).hasAnyRole("ADMIN", "SYS")
                                 .anyRequest().authenticated()
                 )
 //                .authorizeHttpRequests(authorize -> authorize
@@ -186,7 +152,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public HttpSessionCsrfTokenRepository httpSessionCsrfTokenRepository() {
+    public HttpSessionCsrfTokenRepository adminHttpSessionCsrfTokenRepository() {
         HttpSessionCsrfTokenRepository csrfRepository = new HttpSessionCsrfTokenRepository();
         // 아래와 같이 설정하지 않으면
         // 기본값은 "org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository.CSRF_TOKEN" 입니다.
